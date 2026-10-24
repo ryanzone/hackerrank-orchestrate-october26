@@ -164,3 +164,23 @@ branch=main
 repo_root=D:\programs\python\AgenticAI\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+## [2026-10-24T16:10:00Z] Fix report/README issues found in judge-style review
+
+User Prompt (verbatim, secrets redacted):
+yes fix it pls
+
+Agent Response Summary:
+Fixed the false claim that status accuracy was 32/32 from the first engine (it was 30/32, then 31, then 32), added a top summary and a table of data-derived constants to the evaluation report, added a why-no-LLM paragraph and AI-use/kilo note to the README, corrected the Python version claim to tested-on-3.13, removed a doubled divider, and rebuilt code.zip. output.csv is unchanged.
+
+Actions:
+* Edited code/evaluation/evaluation_report.md and README.md
+* Re-ran main.py (output identical), pytest (16 passed), rebuilt code.zip
+
+Context:
+tool=Claude Code
+model=claude-sonnet-5-5
+branch=main
+repo_root=D:\programs\python\AgenticAI\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none

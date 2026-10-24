@@ -12,7 +12,15 @@ Read [`problem_statement.md`](./problem_statement.md) for the complete challenge
 
 ## Solution overview (participant submission)
 
-A deterministic Python audit engine in `code/`. It makes **no model/API calls**, needs **no third-party packages** (Python 3.9+ standard library only; `pytest` is optional for the tests) and reads no secrets.
+**Why no LLM at run time.** The task is to *prove* what state each record was in at a given time from structured evidence, with an
+audit trail, so determinism and reproducibility matter more than language understanding: a model could invent a record or a
+citation. The only genuinely semantic parts are request wording (handled by multilingual keyword rules that classify all 550
+known requests) and the 11 screenshots / 4 PDFs, which an AI assistant read once during development. An LLM fallback for unfamiliar
+request wording and for reading new screenshots is the first thing I would add. The code was written with an AI coding assistant
+(Claude Code); `log.txt` is the transcript, and its first two entries come from an earlier placeholder session in a different
+tool (`kilo`).
+
+A deterministic Python audit engine in `code/`. It makes **no model/API calls**, needs **no third-party packages** (Python standard library only, tested on Python 3.13; `pytest` is optional for the tests) and reads no secrets.
 
 ### Setup and run
 
@@ -44,9 +52,8 @@ python -m pytest code/tests -q            # targeted tests on a tiny synthetic d
 
 * Some verification targets are not recoverable from participant data (for example audit-record ids in log families that never print them); they are omitted rather than guessed.
 * Where several cases share a `reported_at` and the deletion worker logged several accounts for them, the account is ambiguous and **no account step is emitted** (set `ASSIGN_AMBIGUOUS = True` in `code/audit/linker.py` to pair them deterministically instead; that raised public-sample recall but includes coin-flip ids).
-* The transcribed image / PDF facts are a one-off human-in-the-loop step, stored in `audit/transcribed.py`; a new artifact would need to be added there.
-
----
+* The transcribed image / PDF facts are a one-off human-in-the-loop step, stored in `audit/transcribed.py`. Each entry names its source file and what is visible in it; none is copied from `sample_output.csv`. A new artifact would need to be added there.
+* The timeline windows in `audit/linker.py` were set from observed offsets in the data (table in `code/evaluation/evaluation_report.md`); on different data they would need re-checking.
 
 ---
 

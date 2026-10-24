@@ -1,5 +1,19 @@
 # Evaluation Report - Ghost Data Still Exists
 
+## Summary
+
+| | |
+| --- | --- |
+| Approach | Deterministic Python audit engine, no model calls at run time (see README for why, and where an LLM would help) |
+| Public samples (32, development set) | status 32/32; step precision 100 %, recall 93.8 %, F1 96.8 %; exact rows 22/32 |
+| Full run (518, unlabelled) | 355 INCOMPLETE / 153 COMPLETE / 10 NOT_APPLICABLE; output validates |
+| Tests | 16 pytest tests on a synthetic dataset, all passing |
+| Not recoverable from participant data | 92 audit-record ids; 107 ambiguous account / 51 analytics links (deliberately not guessed) |
+| Least certain rows | `case_63` (`marketing_001` identity conflict), `case_45` (cited screenshot vs PDF), `case_55` (restore inferred) |
+| Caveat | Sample numbers are development-set results, not a hidden-test estimate; no organizer-only data was used |
+
+Details follow; the debugging history is at the end of section 2.
+
 Everything below was produced by commands in this repository and can be reproduced:
 
 ```bash
@@ -54,8 +68,9 @@ cases, so they are not a hidden-test estimate. Synthetic-test results (section 3
 identifier (404 lookups carry none) -> `19/32` deletion-worker timeline links keyless accounts / anonymised analytics ->
 `22/32` ignore stale pre-request evidence, cite only files captured at or before `audit_at`, activity-derived category for
 support items -> `24/32` hand-timed persona workflows -> `28/32` cite the case's covering snapshot for timeline-only
-accounts (v1) -> `22/32` v2 stops guessing ambiguous pairings. Status accuracy was 32/32 from the first version that read the evidence at all. The starting placeholder (every
-case `NOT_APPLICABLE`) scored 0/32 on status.
+accounts (v1) -> `22/32` v2 stops guessing ambiguous pairings. Status accuracy moved 30/32 (first engine; `case_07` and `case_26` wrong) -> 31/32 (resource-id linking fixed `case_26`)
+-> 32/32 (transcribing the support-attachment PDF fixed `case_07`). The starting placeholder (every case `NOT_APPLICABLE`)
+scored 0/32 on status.
 
 ## 3. Additional evaluation cases created by me (`code/tests/test_engine.py`)
 
@@ -105,6 +120,19 @@ From `run_stats.py` on the final `output.csv`:
 * Citation integrity on the final file: 1,124 cited steps point to a file that holds an observation of that very resource; the other 39 are `VERIFY_RECORD_ABSENT` account steps proven by the covering snapshot; none cites a file captured after `audit_at`.
 * Every non-curated case cites exactly one covering evidence file (the round's snapshot), consistent with the rounds of ten
   cases per evidence file visible in the data.
+
+### Constants chosen from data (not hidden answers)
+
+| Constant | Value | Where it comes from |
+| --- | --- | --- |
+| Account timeline window (`ACCOUNT_WINDOWS[0]`) | -1.35 h to -0.6 h before `reported_at` | Offsets of the 249 cases whose account is already tied to the person by identifiers (observed range about -1.2 h to -0.7 h, 247 of 249 consistent; the two outliers were wrong links) |
+| Hand-timed window (`ACCOUNT_WINDOWS[1]`) | -0.1 h to +0.2 h | The minute-precision persona cases in the public samples |
+| Analytics window | -0.62 h to -0.38 h | Observed -0.48 h offset of ANONYMIZE_RECORD SUCCESS events for the public COMPLETE samples; this is the thinnest basis (5 samples) |
+| Result class vs `reported_status` | SUCCESS / PARTIAL / FAILED | Held in 247 of 249 evidence-linked cases |
+| Ignore resources last seen before `requested_at` | rule | Added after `case_17` picked up the same person's March workflow; affects 3 resources in the full run |
+
+None of these use `sample_output.csv` content; they come from evidence-linked cases and activity timestamps, and the windows are
+the part most likely to need re-tuning on different data.
 
 ### Image / PDF re-audit
 
