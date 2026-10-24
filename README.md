@@ -10,6 +10,44 @@ For each request, the agent must first determine whether deletion was actually r
 
 Read [`problem_statement.md`](./problem_statement.md) for the complete challenge contract.
 
+## Solution overview (participant submission)
+
+A deterministic Python audit engine in `code/`. It makes **no model/API calls**, needs **no third-party packages** (Python 3.9+ standard library only; `pytest` is optional for the tests) and reads no secrets.
+
+### Setup and run
+
+```bash
+# from the repository root (the folder that contains dataset/)
+python code/main.py                       # reads dataset/, writes output.csv, validates it
+python code/evaluation/evaluate.py        # scores the engine on dataset/sample_output.csv
+python code/evaluation/run_stats.py       # diagnostics for the full 518-request run
+python -m pytest code/tests -q            # targeted tests on a tiny synthetic dataset (optional)
+```
+
+`python code/main.py --help` lists `--dataset`, `--requests`, `--output`, `--no-validate`. Windows, macOS and Linux behave the same (all paths are resolved relative to the repository root; files are read as UTF-8). Rows are sorted by `case_id` as a plain string sort.
+
+### How it works
+
+| Stage | Module | What it does |
+| --- | --- | --- |
+| 1. Authorization | `audit/authorize.py` | Multilingual rules decide whether `request_text` asks for deletion. Access / correction / export / marketing-only / contact-update requests (including negations such as "do not close the account") become `NOT_APPLICABLE` with `[]`. |
+| 2. Identity | `audit/identity.py` | `user_identities.csv` + `user_audit_log.csv` give every person all current and historical emails, email hashes, phones and the stable `user_id`. Matching is case-insensitive and exact (look-alike addresses never match). |
+| 3. Evidence ingestion | `audit/evidence.py`, `audit/logparse.py` | Every file under `dataset/evidence` (SQL snapshots run in SQLite, JSON bundles/exports/ledgers, six log dialects grouped by trace id, hand-over text) becomes normalised observations: *resource, kind, state, time, identifiers, citing file*. Replica tables are unioned, so drift (present in a replica, gone from the primary) is seen. |
+| 4. Images / PDFs | `audit/transcribed.py`, `audit/evidence_manual.py` | No OCR engine is available offline, so the 11 PNGs and 4 PDFs were read once with a multimodal reader (Claude Code vision / `pdftotext`) and the visible facts stored as data. Identity for those items comes from the identifiers visible in the artifact or from the data-catalog `LINK_RESOURCE_IDENTITY` rows. |
+| 5. State at `audit_at` | `audit/engine.py` | A resource is tied to a person when any observation of it carries one of the person's identifiers; its *state* is the latest observation at or before `audit_at` (worst state on ties). Later evidence is never used for state or citation (`captured_at` must also be `<= audit_at`). A snapshot that covers the person but omits one of their deletable records proves it gone. Workflow statuses and `reported_result` are never trusted. |
+| 6. Keyless resources | `audit/linker.py` | 404 account lookups and fully anonymised analytics rows carry no identifier. They are linked to the case that processed them through the deletion-worker timeline in `system_activity.csv` (offset from `reported_at`, result class), after eliminating resources already tied to someone else. |
+| 7. Policy | `audit/engine.py` (`POLICY`) | `deletion_rules.csv` is applied per data category: DELETE (profile, search, export, marketing, attachment), REDACT (support message, tombstone), ANONYMIZE (analytics), RETAIN (security audit, legal hold, backup with blocked restore). Active data flows and restorable backups are findings of their own. |
+| 8. Plan | `audit/engine.py` | Findings, then remediation (disable flows -> block restores -> delete -> redact -> anonymise), then verification, each ordered by operation, `system_id`, `resource_id`; consecutive `step_no`; empty `evidence_id` for future work. |
+| 9. Validation | `audit/validate.py` | Header, 518 unique sorted rows, JSON, numbering, allowed phase/operation/state triples, citation existence and `captured_at <= audit_at`. |
+
+### Known limitations (full discussion in `code/evaluation/evaluation_report.md`)
+
+* Some verification targets are not recoverable from participant data (for example audit-record ids in log families that never print them); they are omitted rather than guessed.
+* Where several cases share a `reported_at` and the deletion worker logged several accounts for them, the account is ambiguous and is paired deterministically (about half of those pairings are expected to be right).
+* The transcribed image / PDF facts are a one-off human-in-the-loop step, stored in `audit/transcribed.py`; a new artifact would need to be added there.
+
+---
+
 ---
 
 ## Quick Start
