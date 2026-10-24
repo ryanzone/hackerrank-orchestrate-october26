@@ -143,3 +143,24 @@ branch=main
 repo_root=D:\programs\python\AgenticAI\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+## [2026-10-24T15:30:00Z] Improve accuracy: stop arbitrary account pairing, regression tests
+
+User Prompt (verbatim, secrets redacted):
+Improve the accuracy of my existing HackerRank Orchestrate solution, "Ghost Data Still Exists," in this repository. Do not rewrite the project from scratch. Do not add Gemini, OpenRouter, or any external API unless you first demonstrate that a specific accuracy problem cannot be adequately solved with the existing evidence-processing approach. Steps: (1) establish a baseline (read AGENTS.md, problem_statement.md, README.md, agent_trace_instructions.md; run tests); (2) fix identity resolution - exact current/historical identifiers, investigate ambiguous links, do not arbitrarily assign an account when evidence is insufficient, add regression tests per corrected rule; (3) recheck every manually transcribed image/PDF fact, investigate the case_45 citation and marketing_001 identity-link issues, change only when the source supports it; (4) verify audit_at reconstruction and policy handling; (5) evaluate every change on sample_output.csv, add at least three synthetic regression tests (ambiguous identities, post-cutoff evidence, active data recreation), report before/after and distinguish public-sample from synthetic results; (6) regenerate output.csv, validate it, review the evaluation and usage reports, keep code.zip free of keys/datasets/venvs/nested archives, preserve append-only logging. Final response: code changes, tests, measured improvements, remaining weaknesses, reproduction commands; do not claim an improvement unless demonstrated.
+
+Agent Response Summary:
+Baseline: 8 tests passing, samples status 32/32, exact rows 28/32, step F1 98.4%. Investigated corroboration for the 107 ambiguous account pairings and found none, so ambiguous account/analytics links are no longer assigned (ASSIGN_AMBIGUOUS=False); this raises sample step precision to 100% but lowers recall to 93.8% (F1 96.8%, exact rows 22/32), reported honestly as a trade, not a gain. Added 8 regression tests (16 total), re-audited all transcriptions (no change), documented case_45 and marketing_001, regenerated and validated output.csv, updated reports/README and rebuilt code.zip.
+
+Actions:
+* Edited code/audit/linker.py (ASSIGN_AMBIGUOUS flag, _pair), added code/tests/test_regressions.py
+* Ran pytest, evaluate.py, run_stats.py, python code/main.py (validation passed), citation-integrity check
+* Updated code/evaluation/evaluation_report.md and README.md; regenerated output.csv; rebuilt code.zip
+
+Context:
+tool=Claude Code
+model=claude-sonnet-5-5
+branch=main
+repo_root=D:\programs\python\AgenticAI\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none

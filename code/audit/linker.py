@@ -10,6 +10,8 @@ import datetime as dt
 from collections import defaultdict
 
 RESULT_OF = {'COMPLETE': 'SUCCESS', 'PARTIALLY_COMPLETE': 'PARTIAL', 'NOT_STARTED': 'FAILED'}
+# False: a resource is linked only when the evidence leaves exactly one candidate (never an arbitrary pairing).
+ASSIGN_AMBIGUOUS = False
 ACCOUNT_WINDOWS = [(-1.35, -0.6), (-0.1, 0.2)]      # hours relative to reported_at (batch / hand-timed workflows)
 ANALYTICS_WINDOW = (-0.62, -0.38)
 
@@ -65,7 +67,10 @@ def _pair(auditor, group, pool, is_kind):
             pairs.append((c, hits[0]))
             cases.remove(c)
             events.remove(hits[0])
-    pairs += list(zip(cases, events))
+    if ASSIGN_AMBIGUOUS:
+        pairs += list(zip(cases, events))
+    elif len(cases) == 1 and len(events) == 1:
+        pairs.append((cases[0], events[0]))   # only one case and one candidate remain: no guessing involved
     return pairs
 
 
